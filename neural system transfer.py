@@ -8,7 +8,7 @@
 # ---------------------------
 
 # 1) Install dependencies (run in Colab)
-!pip install -q tensorflow tensorflow-hub pillow
+pip install -q tensorflow tensorflow-hub pillow
 
 # 2) Imports
 import io, os
