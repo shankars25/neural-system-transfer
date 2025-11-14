@@ -1,98 +1,98 @@
 # -*- coding: utf-8 -*-
-"""NeuralStyleTransfer.ipynb
+"""
+Neural Style Transfer using TensorFlow Hub
+Pure Python version (no Colab)
+"""
 
-
-# ---------------------------
-# Neural Style Transfer (Colab-ready)
-# Using TF-Hub arbitrary-image-stylization
-# ---------------------------
-
-# 1) Install dependencies (run in Colab)
-pip install -q tensorflow tensorflow-hub pillow
-
-# 2) Imports
-import io, os
+import io
+import os
 from PIL import Image
 import numpy as np
 import matplotlib.pyplot as plt
 import tensorflow as tf
 import tensorflow_hub as hub
-from google.colab import files
+import requests
 
-print("TensorFlow:", tf.__version__)
-print("TF-Hub:", hub.__version__)
 
-# 3) Helper functions
-def load_img_from_path(path, max_dim=512):
+# -----------------------------
+# Helper Functions
+# -----------------------------
+def load_image(path, max_dim=512):
+    """Load image from disk"""
     img = Image.open(path).convert('RGB')
     img.thumbnail((max_dim, max_dim))
     img = np.array(img).astype(np.float32) / 255.0
-    img = img[None, ...]
-    return img
+    return img[None, ...]
 
-def load_img_from_url(url, max_dim=512):
-    import requests
-    resp = requests.get(url)
-    img = Image.open(io.BytesIO(resp.content)).convert('RGB')
+
+def load_image_from_url(url, max_dim=512):
+    """Load image from a URL"""
+    data = requests.get(url).content
+    img = Image.open(io.BytesIO(data)).convert('RGB')
     img.thumbnail((max_dim, max_dim))
     img = np.array(img).astype(np.float32) / 255.0
-    img = img[None, ...]
-    return img
+    return img[None, ...]
 
-def show_images(content, style, stylized):
-    plt.figure(figsize=(15,5))
-    titles = ['Content Image', 'Style Image', 'Stylized Result']
-    imgs = [content[0], style[0], stylized[0]]
-    for i, (t, im) in enumerate(zip(titles, imgs)):
-        plt.subplot(1,3,i+1)
-        plt.title(t)
-        plt.imshow(np.clip(im, 0.0, 1.0))
-        plt.axis('off')
-    plt.show()
 
-def save_image(img_tensor, filename='/content/stylized-result.jpg'):
+def save_image(img_tensor, filename):
+    """Save stylized output to disk"""
     img = img_tensor[0]
     img = np.clip(img * 255.0, 0, 255).astype(np.uint8)
     Image.fromarray(img).save(filename)
-    return filename
+    print(f"Image saved: {filename}")
 
-# 4) Load pre-trained TF-Hub model
+
+def show_images(content, style, stylized):
+    plt.figure(figsize=(15, 5))
+
+    titles = ["Content Image", "Style Image", "Stylized Result"]
+    images = [content[0], style[0], stylized[0]]
+
+    for i, (title, img) in enumerate(zip(titles, images)):
+        plt.subplot(1, 3, i + 1)
+        plt.imshow(np.clip(img, 0, 1))
+        plt.title(title)
+        plt.axis("off")
+
+    plt.show()
+
+
+# -----------------------------
+# Load Pretrained Model
+# -----------------------------
 MODEL_URL = "https://tfhub.dev/google/magenta/arbitrary-image-stylization-v1-256/2"
 stylize_model = hub.load(MODEL_URL)
-print("Loaded stylization model.")
+print("Model loaded successfully.")
 
-# 5) Choose images
-# Option A: Upload your own images (recommended)
-print("\nOPTION A: Upload your content and style images.")
-print(" - Click the file chooser and upload two image files (content then style).")
-print(" - If you prefer URLs, set use_urls=True below and provide URLs in content_url/style_url.")
-use_upload = True  # set False to use URLs
 
-if use_upload:
-    uploaded = files.upload()  # click and upload 2 files
-    # Note: in Colab the upload widget pauses execution until files are uploaded.
-    uploaded_files = list(uploaded.keys())
-    if len(uploaded_files) < 2:
-        raise Exception("Please upload at least two images (content image first, then style image).")
-    content_path = uploaded_files[0]
-    style_path = uploaded_files[1]
-    content_image = load_img_from_path(content_path, max_dim=512)
-    style_image = load_img_from_path(style_path, max_dim=512)
-else:
-    # Option B: Use remote image URLs
-    content_url = "https://upload.wikimedia.org/wikipedia/commons/thumb/2/2f/Golden_Gate_Bridge%2C_SF_%28cropped%29.jpg/800px-Golden_Gate_Bridge%2C_SF_%28cropped%29.jpg"
-    style_url   = "https://upload.wikimedia.org/wikipedia/commons/0/0a/The_Starry_Night.jpg"
-    content_image = load_img_from_url(content_url, max_dim=512)
-    style_image = load_img_from_url(style_url, max_dim=512)
+# -----------------------------
+# Choose Images
+# -----------------------------
 
-# 6) Run style transfer
-# Note: the model expects float images in [0,1] with shape [1, H, W, 3]
-stylized_image = stylize_model(tf.constant(content_image), tf.constant(style_image))[0]
+# OPTION A — Local images
+content_path = "content.jpg"   # <---- replace with your image
+style_path = "style.jpg"       # <---- replace with your image
 
-# 7) Show and save results
+content_image = load_image(content_path)
+style_image = load_image(style_path)
+
+# OPTION B — URLs (uncomment if needed)
+# content_image = load_image_from_url("https://your-content-url.jpg")
+# style_image = load_image_from_url("https://your-style-url.jpg")
+
+
+# -----------------------------
+# Perform Style Transfer
+# -----------------------------
+stylized_image = stylize_model(
+    tf.constant(content_image),
+    tf.constant(style_image)
+)[0]
+
+
+# -----------------------------
+# Save and Show
+# -----------------------------
+output_path = "stylized_output.jpg"
+save_image(stylized_image, output_path)
 show_images(content_image, style_image, stylized_image)
-out_path = save_image(stylized_image, '/content/stylized-result.jpg')
-print(f"Stylized image saved to: {out_path}")
-
-# 8) (Optional) Download result to your device
-files.download(out_path)
