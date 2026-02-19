@@ -1,8 +1,4 @@
 # -*- coding: utf-8 -*-
-"""
-Neural Style Transfer using TensorFlow Hub
-Pure Python version (no Colab)
-"""
 
 import io
 import os
